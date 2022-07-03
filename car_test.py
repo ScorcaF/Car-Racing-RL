@@ -4,7 +4,7 @@ import gym
 from collections import deque
 from gym import spaces
 import numpy as np
-from Utils import RewardWrapper, ConcatNext
+from Utils import RewardWrapper, ConcatNext, LaneKeepWrapper
 
 
 from stable_baselines3 import PPO
@@ -12,10 +12,11 @@ import os
 
 
 env = gym.make("CarRacing-v0")
-env = ConcatNext(env)
+env = LaneKeepWrapper(env)
+# env = ConcatNext(env)
 
-models_dir = "PPO/pred2steps_env"
-model_path = models_dir + "/10000.zip"
+models_dir = "PPO/out_penalty_env"
+model_path = models_dir + "/70000.zip"
 model = PPO.load(model_path, env=env)
 
 

@@ -10,7 +10,7 @@ from Utils import RewardWrapper, ConcatNext, LaneKeepWrapper
 from stable_baselines3 import PPO
 import os
 
-models_dir = "PPO/lane_reward_env"
+models_dir = "PPO/out_penalty_env"
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
 logdir = "logs"
@@ -28,7 +28,7 @@ env.reset()
 model = PPO('MlpPolicy', env, verbose=1, tensorboard_log=logdir)
 TIMESTEPS = 10_000
 for i in range(15):
-    model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="lane_reward_env")
+    model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="out_penalty_env")
     model.save(f"{models_dir}/{TIMESTEPS*i}")
 
 

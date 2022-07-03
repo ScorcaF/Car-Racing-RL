@@ -4,6 +4,7 @@ from gym import spaces
 import numpy as np
 from stable_baselines3.common.callbacks import BaseCallback
 import cv2
+from PIL import Image
 
 
 
@@ -135,32 +136,32 @@ class RewardWrapper(gym.RewardWrapper):
 class LaneKeepWrapper(gym.Wrapper):
     def __init__(self, env):
         gym.Wrapper.__init__(self, env)
-        self.observation_space = spaces.Box(low=0, high=255, shape=(2,49), dtype=env.observation_space.dtype)
+        # self.observation_space = spaces.Box(low=0, high=255, shape=(2,49), dtype=env.observation_space.dtype)
 
 
     def reset(self):
         ob = self.env.reset()
-        return self.process_obs(ob)
+        return ob
 
     def step(self, action):
         ob, reward, done, info = self.env.step(action)
-        ob = self.process_obs(ob)
-        out_lane_reward = self.lane_keep_reward(ob)
-        reward += out_lane_reward
+        lane_reward = self.lane_keep_reward(ob)
+        reward += lane_reward
         return ob, reward, done, info
 
     def lane_keep_reward(self, obs):
+
+        obs = self.process_obs(obs)
         # find all non zero values in the cropped strip.
         # These non zero points(white pixels) corresponds to the edges of the road
         nz = cv2.findNonZero(obs)
-
         # center of the image: 24
         if nz is None:
-            return -10
+            return -1
         elif nz[:, 0, 0].max() < 24:
-            return -0.2*(nz[:, 0, 0].max() - 24)
+            return 0.2*(nz[:, 0, 0].max() - 24)
         elif nz[:, 0, 0].min() > 24:
-            return -0.2*(24 - nz[:, 0, 0].min())
+            return 0.2*(24 - nz[:, 0, 0].min())
         else:
             return 0.005*(nz[:, 0, 0].max() - 24) + 0.005*(24 - nz[:, 0, 0].min())
 
@@ -171,8 +172,6 @@ class LaneKeepWrapper(gym.Wrapper):
         obs = self.blur_image(obs)
         obs = self.crop(obs)
         obs = self.canny_edge_detector(obs)
-
-
         return obs
 
     def green_mask(self, observation):
@@ -198,4 +197,7 @@ class LaneKeepWrapper(gym.Wrapper):
         return canny
 
     def crop(self, observation):
-        return observation[63:65, 24:73]
+        # 2 pixels in front of the car:
+            #for row > 67 we see the car (apparently image is inverted)
+            #if we take just one pixels canny filter leads to issues
+        return observation[65:67, 24:73]
