@@ -4,7 +4,7 @@ import gym
 from collections import deque
 from gym import spaces
 import numpy as np
-from Utils import RewardWrapper, ConcatActs
+from Utils import RewardWrapper, ConcatNext
 
 
 from stable_baselines3 import PPO
@@ -12,10 +12,10 @@ import os
 
 
 env = gym.make("CarRacing-v0")
-# env = RewardWrapper(ConcatActs(env, 2))
+env = ConcatNext(env)
 
-models_dir = "PPO/baseline_env"
-model_path = models_dir + "/40000.zip"
+models_dir = "PPO/pred2steps_env"
+model_path = models_dir + "/10000.zip"
 model = PPO.load(model_path, env=env)
 
 
