@@ -101,44 +101,18 @@ class NormalizeObservation(gym.ObservationWrapper):
     def observation(self, observation):
         return observation/255.0
 
+class TensorboardCallback(BaseCallback):
+    """
+    Custom callback for plotting additional values in tensorboard.
+    """
+    def __init__(self, verbose=0):
+        super(TensorboardCallback, self).__init__(verbose)
 
-# class TensorboardCallback(BaseCallback):
-#     """
-#     Custom callback for plotting additional values in tensorboard.
-#     """
-#     def __init__(self, verbose=0):
-#         self.is_tb_set = False
-#         super(TensorboardCallback, self).__init__(verbose)
-#
-#     def _on_step(self) -> bool:
-#         # Log additional tensor
-#         # if not self.is_tb_set:
-#         #     with self.model.graph.as_default():
-#         #         tf.summary.scalar('value_target', tf.reduce_mean(self.model.value_target))
-#         #         self.model.summary = tf.summary.merge_all()
-#         #     self.is_tb_set = True
-#         # Log scalar value (here a random variable)
-#         value = np.random.random()
-#         summary = tf.Summary(value=[tf.Summary.Value(tag='random_value', simple_value=value)])
-#         self.locals['writer'].add_summary(summary, self.num_timesteps)
-#         return True
+    def _on_step(self) -> bool:
+        value = np.random.random()
+        self.logger.record('random_value', value)
+        return True
 
-
-
-    # # horizontal cordinates of center of the road in the cropped slice
-    # mid = 24
-    #
-    # # some further adjustments obtained through trail and error
-    # if nz[:, 0, 0].max() == nz[:, 0, 0].min():
-    #     if nz[:, 0, 0].max() < 30 and nz[:, 0, 0].max() > 20:
-    #         return previous_error
-    #     if nz[:, 0, 0].max() >= mid:
-    #         return (-15)
-    #     else:
-    #         return (+15)
-    # else:
-    #     return (((nz[:, 0, 0].max() + nz[:, 0, 0].min()) / 2) - mid)
-    # return (green)
 
 class LaneKeepWrapper(gym.Wrapper):
     def __init__(self, env, div):
@@ -240,6 +214,7 @@ class KeepCenterWrapper(gym.Wrapper):
         return self.process_obs(obs)
 
     def step(self, action):
+
         obs, drive_reward, done, info = self.env.step(action)
         obs = self.process_obs(obs)
         # penalty: no division, penalty2: /5, penalty3: /2
