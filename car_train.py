@@ -4,13 +4,13 @@ import gym
 from collections import deque
 from gym import spaces
 import numpy as np
-from Utils import RewardWrapper, ConcatNext, LaneKeepWrapper
+from Utils import RewardWrapper, ConcatNext, LaneKeepWrapper, ConcatObs, ReduceActionsWrapper, KeepCenterWrapper, NormalizeObservation
 
 
 from stable_baselines3 import PPO
 import os
 
-models_dir = "PPO/out_penalty_env"
+models_dir = "PPO/center_penaltydiv10_env"
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
 logdir = "logs"
@@ -23,12 +23,21 @@ if not os.path.exists(logdir):
 # The reward is -0.1 every frame and +1000/N for every track tile visited, where N is the total number of tiles visited in the track.
 
 env = gym.make("CarRacing-v0")
-env = LaneKeepWrapper(env)
-env.reset()
-model = PPO('MlpPolicy', env, verbose=1, tensorboard_log=logdir)
+# env = LaneKeepWrapper(env, 2)
+env = KeepCenterWrapper(env, 10)
+# env = ReduceActionsWrapper(env)
+# env = LaneForceWrapper(env)
+# env.reset()
+# model = PPO('MlpPolicy', env, verbose=1, tensorboard_log=logdir)
+
+# Continue model training
+model_path = models_dir + "/590000.zip"
+model = PPO.load(model_path, env=env)
+
+#Train
 TIMESTEPS = 10_000
-for i in range(15):
-    model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="out_penalty_env")
+for i in range(60, 100):
+    model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="center_penaltydiv10_env")
     model.save(f"{models_dir}/{TIMESTEPS*i}")
 
 
