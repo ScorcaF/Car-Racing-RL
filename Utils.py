@@ -94,12 +94,54 @@ class RewardWrapper(gym.RewardWrapper):
         reward = max(reward, -1.0)
         return reward
 
-class NormalizeObservation(gym.ObservationWrapper):
-    def __init__(self, env):
+class GrayCropObservation(gym.ObservationWrapper):
+    def __init__(self, env, gray= True):
         super().__init__(env)
+        self.gray = gray
+        if self.gray:
+            self.observation_space = spaces.Box(low=0, high=255, shape=(84,96), dtype=env.observation_space.dtype)
+        else:
+            self.observation_space = spaces.Box(low=0, high=255, shape=(84, 96, 3), dtype=env.observation_space.dtype)
+
+
 
     def observation(self, observation):
-        return observation/255.0
+        return self.process_obs(observation)
+
+    def process_obs(self, obs):
+        # Apply following functions
+        # obs = self.green_mask(obs)
+        if self.gray:
+            obs = self.gray_scale(obs)
+        # obs = self.blur_image(obs)
+        obs = self.crop(obs)
+        return obs
+
+    def green_mask(self, observation):
+        hsv = cv2.cvtColor(observation, cv2.COLOR_BGR2HSV)
+        mask_green = cv2.inRange(hsv, (36, 25, 25), (70, 255, 255))
+
+        ## slice the green
+        imask_green = mask_green > 0
+        green = np.zeros_like(observation, np.uint8)
+        green[imask_green] = observation[imask_green]
+        return (green)
+
+    def gray_scale(self, observation):
+        gray = cv2.cvtColor(observation, cv2.COLOR_RGB2GRAY)
+        return gray
+
+    def blur_image(self, observation):
+        blur = cv2.GaussianBlur(observation, (5, 5), 0)
+        return blur
+
+    def canny_edge_detector(self, observation):
+        canny = cv2.Canny(observation, 50, 150)
+        return canny
+
+    def crop(self, observation):
+        # cut stats
+        return observation[:84, :]
 
 class TensorboardCallback(BaseCallback):
     """
@@ -204,22 +246,27 @@ class ReduceActionsWrapper(gym.Wrapper):
 
 
 class KeepCenterWrapper(gym.Wrapper):
-    def __init__(self, env, div):
+    def __init__(self, env, div, manipulate_obs = True):
         gym.Wrapper.__init__(self, env)
-        self.observation_space = spaces.Box(low=0, high=255, shape=(2,49), dtype=env.observation_space.dtype)
+        if manipulate_obs:
+            self.observation_space = spaces.Box(low=0, high=255, shape=(2,49), dtype=env.observation_space.dtype)
         self.div = div
+        self.manipulate_obs = manipulate_obs
 
     def reset(self):
         obs = self.env.reset()
-        return self.process_obs(obs)
+        if self.manipulate_obs:
+            return self.process_obs(obs)
+        else:
+            return obs
 
     def step(self, action):
-
         obs, drive_reward, done, info = self.env.step(action)
-        obs = self.process_obs(obs)
         # penalty: no division, penalty2: /5, penalty3: /2
-        lane_reward = self.center_distance_penalty(obs)/self.div
+        lane_reward = self.center_distance_penalty(self.process_obs(obs))/self.div
         reward = drive_reward + lane_reward
+        if self.manipulate_obs:
+            obs = self.process_obs(obs)
         return obs, reward, done, info
 
     def center_distance_penalty(self, obs):

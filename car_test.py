@@ -4,7 +4,7 @@ import gym
 from collections import deque
 from gym import spaces
 import numpy as np
-from Utils import RewardWrapper, ConcatNext, LaneKeepWrapper, ConcatObs, ReduceActionsWrapper, KeepCenterWrapper, NormalizeObservation, ForceCenterWrapper
+from Utils import RewardWrapper, ConcatNext, LaneKeepWrapper, ConcatObs, ReduceActionsWrapper, KeepCenterWrapper, GrayCropObservation, ForceCenterWrapper
 from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv
 
 
@@ -17,15 +17,17 @@ from pathlib import Path
 
 
 env = gym.make("CarRacing-v0")
-env = KeepCenterWrapper(env, 10)
-# env = ReduceActionsWrapper(env)
-# env = ConcatObs(env,3)
+# env = KeepCenterWrapper(env, 10, manipulate_obs=False)
+env = ReduceActionsWrapper(env)
+# env = ConcatObs(env,10)
 # env = RewardWrapper(env)
 # env = LaneForceWrapper(env)
+env = GrayCropObservation(env, gray=False)
+# env = ConcatObs(env, 4)
 
 
-models_dir = "PPO/lanekeep_div2_env"
-model_path = models_dir + "/500000.zip"
+models_dir = "PPO/crop_actpenalty_cnn"
+model_path = models_dir + "/420000.zip"
 model = PPO.load(model_path, env=env)
 
 
@@ -40,13 +42,12 @@ model = PPO.load(model_path, env=env)
 #         obs, rewards, done, info = env.step(action)
 #
 #         env.render()
-#         # time.sleep(0.01)
-#         print(rewards)
+#         time.sleep(0.01)
 #
 # env.close()
 
 video_folder = 'videos/'
-video_length = 5000
+video_length = 2000
 env_id = "CarRacing-v0"
 env = DummyVecEnv([lambda: env])
 
@@ -55,7 +56,7 @@ obs = env.reset()
 # Record the video starting at the first step
 env = VecVideoRecorder(env, video_folder,
                        record_video_trigger=lambda x: x == 0, video_length=video_length,
-                       name_prefix=f"lanekeep_div2_env")
+                       name_prefix=f"crop_actpenalty_cnn33")
 
 env.reset()
 for _ in range(video_length + 1):
